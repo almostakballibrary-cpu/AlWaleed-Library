@@ -1,0 +1,45 @@
+name: بناء تطبيق أندرويد APK
+
+on:
+  push:
+    branches: [ main ] # سيتم بناء التطبيق تلقائياً فور تعديل الكود على الفرع الرئيسي (main)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # تشغيل العملية على خادم نظام أوبونتو أحدث نسخة
+
+    steps:
+    - name: جلب كود المصدر من المستودع
+      uses: actions/checkout@v4
+
+    - name: إعداد بيئة نود جي إس (Node.js)
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: تثبيت الحزم والأدوات اللازمة
+      run: |
+        npm init -y
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+
+    - name: تهيئة أداة كاباسيتور لتحويل الموقع إلى تطبيق
+      run: |
+        npx cap init "تطبيقي" "com.walid.myapp" --web-dir=.
+        npx cap add android
+
+    - name: إعداد حزمة تطوير جافا JDK 17 (مطلوبة للأندرويد)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: بناء وتجميع ملف التطبيق النهائي
+      run: |
+        npx cap sync
+        cd android && ./gradlew assembleDebug
+
+    - name: رفع واستخراج ملف الـ APK الجاهز
+      uses: actions/upload-artifact@v4
+      with:
+        name: ملف-التطبيق-جاهز-للتثبيت
+        path: android/app/build/outputs/apk/debug/app-debug.apk
